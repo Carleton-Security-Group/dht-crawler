@@ -10,15 +10,19 @@ struct bstr {
 
 int bstr_init(struct bstr *b, int length);
 
+int bstr_populate(struct bstr *b, char *s);
+
+struct bstr *bstr_from_str(char *s);
+
 int bstr_realloc(struct bstr *b, int length);
 
-struct bstr *bstr_concat(struct bstr *b1, struct bstr *b2);
+int bstr_concat(struct bstr *b1, struct bstr *b2);
 
-int bstr_populate(struct bstr *b, char *s);
+int bstr_extend(struct bstr *b, char *s);
 
 struct bstr *bstr_duplicate(struct bstr *b);
 
-int bstr_read(struct bstr *b, char *s, int bytes);
+int bstr_read(struct bstr *b, char *buf, int bytes);
 
 void bstr_cleanup(struct bstr *b);
 
