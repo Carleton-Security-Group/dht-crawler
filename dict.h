@@ -11,8 +11,8 @@ struct dict_entry {
 
 struct dict {
     struct dict_entry *pairs;
-    int count;
-    int limit;
+    int length;
+    int capacity;
 };
 
 int dict_init(struct dict *d, int size);

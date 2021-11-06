@@ -6,8 +6,8 @@
 
 struct list {
     struct value *entries;
-    int count;
-    int limit;
+    int length;
+    int capacity;
 };
 
 int list_init(struct list *l, int size);
