@@ -59,7 +59,11 @@ def parse_nodes_info_block(node_info_bytes):
 
 def send_data_get_response(data_bytes, ip, port, data=None):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-    s.sendto(data_bytes, (ip, port))
+    try:
+        s.sendto(data_bytes, (ip, port))
+    except socket.gaierror:
+        print(f'ERROR: getaddrinfo error trying to send to {ip}:{port}', file=sys.stderr)
+        return None
     resp_data, address = s.recvfrom(4096)
     s.close()
     if data is not None:
@@ -197,7 +201,7 @@ def get_peers(info_hash, server, port, client_id=ID):
     return output
 
 
-def find_nodes_from_server(info_hash, server, port, client_id=ID, values=None, lock=None, depth=3):
+def find_nodes_from_server(info_hash, server, port, client_id=ID, values=None, lock=None, depth=5):
     if depth <= 0:
         return []
     response = get_peers(info_hash, server, port, client_id)
@@ -206,7 +210,7 @@ def find_nodes_from_server(info_hash, server, port, client_id=ID, values=None, l
     if 'values' in response:
         if values is not None:
             lock.acquire()
-            values.extend(values)
+            values.extend(response['values'])
             lock.release()
         else:
             return response['values']
