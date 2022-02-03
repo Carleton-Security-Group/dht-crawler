@@ -1,6 +1,7 @@
 import socket
 import sys
 import bencodepy
+import threading
 
 
 ID = 'abcdefghij0123456789'
@@ -10,13 +11,21 @@ ID_INT = int.from_bytes(ID_BYTES, byteorder='big')
 DEFAULT_SERVER = 'router.bittorrent.com'
 DEFAULT_PORT = 6881
 
-
-def get_random_20_bytes():
-    return random.randint(0, 255**20)
+KNOWN_SERVERS = [
+        ('router.bittorrent.com', 6881),
+        ('router.utorrent.com', 6881),
+        ('router.bitcomet.com', 6881),
+        ('dht.transmissionbt.com', 6881),
+        ('dht.aelitis.com', 6881),
+        ]
 
 
 def int_to_20_bytes(id_int):
     return id_int.to_bytes(length=20, byteorder='big')
+
+
+def get_random_20_bytes():
+    return int_to_20_bytes(random.randrange(0, 256**20))
 
 
 def parse_id(id_bytes):
@@ -48,12 +57,33 @@ def parse_nodes_info_block(node_info_bytes):
     return node_infos
 
 
-def send_data_get_response(data_bytes, ip, port):
+def send_data_get_response(data_bytes, ip, port, data=None):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
     s.sendto(data_bytes, (ip, port))
-    data, address = s.recvfrom(4096)
+    resp_data, address = s.recvfrom(4096)
     s.close()
-    return data
+    if data is not None:
+        data.append(resp_data)
+    else:
+        return resp_data
+
+
+def send_data_get_response_with_timeout(data_bytes, ip, port, timeout):
+    if type(ip) == type([]):
+        ip = '.'.join([str(num) for num in ip])
+    data = []
+    thread = threading.Thread(
+            target=send_data_get_response,
+            args=(data_bytes, ip, port),
+            kwargs={'data': data},
+            daemon=True,
+            )
+    thread.start()
+    thread.join(timeout=timeout)
+    assert len(data) < 2
+    if len(data) == 1:
+        return data[0]
+    return None
 
 
 def ping(server, port, client_id=ID):
@@ -143,8 +173,18 @@ def get_peers(info_hash, server, port, client_id=ID):
             'a': {'id': client_id, 'info_hash': info_hash}
             }
     data_benc = bencodepy.encode(data_dict)
-    response = send_data_get_response(data_benc, server, port)
-    resp_dict = bencodepy.decode(response)[b'r']
+    response = send_data_get_response_with_timeout(data_benc, server, port, 5.0)
+    if response is None:
+        return None
+    try:
+        data_dict = bencodepy.decode(response)
+    except bencodepy.exceptions.DecodingError:
+        print('ERROR: get_peers() cannot bdecode response:', file=sys.stderr)
+        return None
+    if b'r' not in data_dict:
+        print('ERROR: get_peers() bencoded dict missing \'r\' key:', file=sys.stderr)
+        return None
+    resp_dict = data_dict[b'r']
     output = {'id': parse_id(resp_dict[b'id'])}
     if b'token' in resp_dict:
         output['token'] = resp_dict[b'token']
@@ -155,6 +195,47 @@ def get_peers(info_hash, server, port, client_id=ID):
     if b'nodes' in resp_dict:
         output['nodes'] = parse_nodes_info_block(resp_dict[b'nodes'])
     return output
+
+
+def find_nodes_from_server(info_hash, server, port, client_id=ID, values=None, lock=None, depth=3):
+    if depth <= 0:
+        return []
+    response = get_peers(info_hash, server, port, client_id)
+    if response == None:
+        return []
+    if 'values' in response:
+        if values is not None:
+            lock.acquire()
+            values.extend(values)
+            lock.release()
+        else:
+            return response['values']
+    elif 'nodes' in response:
+        child_values = []
+        child_lock = threading.Lock()
+        children = []
+        for node in response['nodes']:
+            child = threading.Thread(
+                    target=find_nodes_from_server,
+                    args=(info_hash, node['ip'], node['port'], client_id),
+                    kwargs={'values': child_values, 'lock': child_lock, 'depth': depth-1})
+            children.append(child)
+            child.start()
+        for child in children:
+            child.join()
+        if values is not None:
+            lock.acquire()
+            values.extend(child_values)
+            lock.release()
+        else:
+            return child_values
+
+
+def find_all_peers(info_hash, client_id=ID):
+    values = []
+    for server, port in KNOWN_SERVERS:
+        values += find_nodes_from_server(info_hash, server, port, client_id)
+    return values
 
 
 def announce_peer(info_hash, listen_port, token, server, port, client_id=ID):
@@ -235,3 +316,10 @@ if __name__ == '__main__':
         announce_peer_dict = announce_peer(info_hash, listen_port, get_peers_dict['token'], server, port, client_id)
         print(f'\nResponse from announce_peer(info_hash={info_hash}, listen_port={listen_port}, token={get_peers_dict["token"]}, server={server}, port={port}, client_id={client_id}):')
         pprint.pprint(announce_peer_dict, indent=2)
+
+    from magnet_to_infohash import magnet_to_infohash
+    archlinux_magnet = 'magnet:?xt=urn:btih:2f58e7d13e89abb76ed3eac491378cc17f7085eb&dn=archlinux-2022.02.01-x86_64.iso'
+    info_hash = magnet_to_infohash(archlinux_magnet)
+    print(f'\nGetting peers for {archlinux_magnet} ...')
+    peers = find_all_peers(info_hash, client_id)
+    pprint.pprint(peers, indent=2)
