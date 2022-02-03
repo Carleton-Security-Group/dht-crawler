@@ -36,7 +36,7 @@ def parse_id(id_bytes):
 
 
 def parse_ip_port(ip_port_bytes):
-    ip = list(ip_port_bytes)[:4]
+    ip = '.'.join(str(num) for num in list(ip_port_bytes)[:4])
     port = int.from_bytes(ip_port_bytes[4:], byteorder='big')
     return ip, port
 
@@ -183,10 +183,10 @@ def get_peers(info_hash, server, port, client_id=ID):
     try:
         data_dict = bencodepy.decode(response)
     except bencodepy.exceptions.DecodingError:
-        print('ERROR: get_peers() cannot bdecode response:', file=sys.stderr)
+        # print('ERROR: get_peers() cannot bdecode response:', file=sys.stderr)
         return None
     if b'r' not in data_dict:
-        print('ERROR: get_peers() bencoded dict missing \'r\' key:', file=sys.stderr)
+        # print('ERROR: get_peers() bencoded dict missing \'r\' key:', file=sys.stderr)
         return None
     resp_dict = data_dict[b'r']
     output = {'id': parse_id(resp_dict[b'id'])}
@@ -195,7 +195,8 @@ def get_peers(info_hash, server, port, client_id=ID):
     if b'values' in resp_dict:
         output['values'] = [parse_ip_port(peer) for peer in resp_dict[b'values']]
         if b'token' not in resp_dict:
-            print('WARNING: get_peers() returned list of ips but didn\'t return a token', file=sys.stderr)
+            # print('WARNING: get_peers() returned list of ips but didn\'t return a token', file=sys.stderr)
+            pass
     if b'nodes' in resp_dict:
         output['nodes'] = parse_nodes_info_block(resp_dict[b'nodes'])
     return output
@@ -203,19 +204,19 @@ def get_peers(info_hash, server, port, client_id=ID):
 
 def find_nodes_from_server(info_hash, server, port, client_id=ID, values=None, lock=None, depth=5):
     if depth <= 0:
-        return []
+        return set()
     response = get_peers(info_hash, server, port, client_id)
     if response == None:
-        return []
+        return set()
     if 'values' in response:
         if values is not None:
             lock.acquire()
-            values.extend(response['values'])
+            values.update(set(response['values']))
             lock.release()
         else:
             return response['values']
     elif 'nodes' in response:
-        child_values = []
+        child_values = set()
         child_lock = threading.Lock()
         children = []
         for node in response['nodes']:
@@ -229,17 +230,27 @@ def find_nodes_from_server(info_hash, server, port, client_id=ID, values=None, l
             child.join()
         if values is not None:
             lock.acquire()
-            values.extend(child_values)
+            values.update(child_values)
             lock.release()
         else:
             return child_values
 
 
 def find_all_peers(info_hash, client_id=ID):
-    values = []
+    values = set()
+    lock = threading.Lock()
+    children = []
     for server, port in KNOWN_SERVERS:
-        values += find_nodes_from_server(info_hash, server, port, client_id)
-    return values
+        child = threading.Thread(
+                target=find_nodes_from_server,
+                args=(info_hash, server, port, client_id),
+                kwargs={'values': values, 'lock': lock, 'depth': 5},
+                )
+        children.append(child)
+        child.start()
+    for child in children:
+        child.join()
+    return sorted(values, key=lambda val: tuple([int(num) for num in val[0].split('.')]))
 
 
 def announce_peer(info_hash, listen_port, token, server, port, client_id=ID):
