@@ -15,5 +15,5 @@ while True:
             uniqueHashes[line] = line
             f.write(line + "\n")
             #f.flush()
-            #print(line)
+            print("\n"+line)
             #sys.stdout.write(line + "\n")
