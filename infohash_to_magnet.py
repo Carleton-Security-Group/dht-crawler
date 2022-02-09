@@ -2,7 +2,7 @@ import sys
 
 
 def infohash_to_magnet(info_hash):
-    return f'magnet:?xt={info_hash:x}'
+    return f'magnet:?xt=urn:btih:{info_hash:x}'
 
 
 if __name__ == '__main__':

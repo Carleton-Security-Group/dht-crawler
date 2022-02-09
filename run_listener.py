@@ -4,6 +4,7 @@ import subprocess
 import multiprocessing
 import client
 import time
+import datetime
 
 ARCHLINUX = 'magnet:?xt=urn:btih:2f58e7d13e89abb76ed3eac491378cc17f7085eb&dn=archlinux-2022.02.01-x86_64.iso'
 DEFAULT_PORT = 51413
@@ -14,20 +15,30 @@ RUNTIME = 60 * 60 * 24  # 24 hours
 
 RESTART_EVERY = 60 * 15 # 15 minutes
 
+# Total ports to be used = NODE_COUNT * RUNTIME / RESTART_EVERY
+
 
 def handle_infohash(infohash):
+    # Type of infohash should be string (40-byte hex representation of 20-byte integer)
     # Put infohash into databse
     client_id = client.get_random_20_bytes()
     peers = client.find_all_peers(infohash, client_id)
     # Put infohash-peer pairs into database with timestamp
-    #TODO
+    # TODO
     # Do something else with data?
-    # with open(f'{infohash}_{time.time()}.peers', 'w') as outfile:
-    #     for ip, port in peers:
-    #         outfile.write(f'{ip}:{port}\n')
+    timestamp = datetime.datetime.isoformat(datetime.datetime.now())
+    with open(f'{infohash}_{timestamp}.peers', 'w') as outfile:
+        for ip, port in peers:
+            outfile.write(f'{ip}:{port}\n')
+    curl_args = ['curl', '-L', '--output', f'{infohash}.torrent', f'http://itorrents.org/torrent/{infohash}.torrent']
+    print(curl_args)
+    subprocess.run(curl_args)
+    with open(f'{infohash}.info', 'w') as info_file:
+        subprocess.run(['transmission-show', f'{infohash}.torrent'], stdout=info_file)
 
 
 def spawn_nodes_every(interval, start_port, count, start_time, runtime):
+    nodes = []
     while time.time() < start_time + runtime:
         for node in nodes:
             node.kill()
@@ -37,7 +48,6 @@ def spawn_nodes_every(interval, start_port, count, start_time, runtime):
             config_dir = f'/tmp/deluged_{port}'
             os.mkdir(config_dir)
             #args = ['transmission-cli', '-g', config_dir, '-p', str(port), ARCHLINUX]
-            # Once archlinux is downloaded once, each node should just announce itself to the DHT
             args = ['deluged', '-d', '-c', config_dir, '-p', str(port)]
             node = subprocess.Popen(args)
             nodes.append(node)

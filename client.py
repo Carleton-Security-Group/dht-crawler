@@ -2,6 +2,7 @@ import socket
 import sys
 import bencodepy
 import threading
+import random
 
 
 ID = 'abcdefghij0123456789'
@@ -166,6 +167,8 @@ def get_peers(info_hash, server, port, client_id=ID):
 
     Returns response in dict format.
     '''
+    if type(info_hash) == type('asdf'):
+        info_hash = int(info_hash, base=16)
     if type(info_hash) == type(1234):
         info_hash = int_to_20_bytes(info_hash)
     if type(client_id) == type(1234):
