@@ -18,14 +18,17 @@ RESTART_EVERY = 60 * 15 # 15 minutes
 def handle_infohash(infohash):
     # Put infohash into databse
     client_id = client.get_random_20_bytes()
-    client.find_all_peers(infohash, client_id)
+    peers = client.find_all_peers(infohash, client_id)
     # Put infohash-peer pairs into database with timestamp
     #TODO
     # Do something else with data?
+    # with open(f'{infohash}_{time.time()}.peers', 'w') as outfile:
+    #     for ip, port in peers:
+    #         outfile.write(f'{ip}:{port}\n')
 
 
 def spawn_nodes_every(interval, start_port, count, start_time, runtime):
-    while time.now() < start_time + runtime:
+    while time.time() < start_time + runtime:
         for node in nodes:
             node.kill()
         nodes = []
@@ -55,12 +58,12 @@ def main():
 
     tshark = subprocess.Popen(tshark_args, stdout=subprocess.PIPE)
 
-    start_time = time.now()
+    start_time = time.time()
     spawner = multiprocessing.Process(target=spawn_nodes_every, args=(RESTART_EVERY, DEFAULT_PORT, node_count, start_time, RUNTIME))
     spawner.start()
 
     children = []
-    while time.now() < start_time + runtime:
+    while time.time() < start_time + runtime:
         line = tshark.stdout.readline()
         line = line.decode("utf-8")
         line = line.strip()
