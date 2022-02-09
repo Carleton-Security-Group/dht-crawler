@@ -8,6 +8,8 @@ import time
 ARCHLINUX = 'magnet:?xt=urn:btih:2f58e7d13e89abb76ed3eac491378cc17f7085eb&dn=archlinux-2022.02.01-x86_64.iso'
 DEFAULT_PORT = 51413
 
+NODE_COUNT = 5
+
 runtime = 60 * 60 * 24  # 24 hours
 
 
@@ -16,13 +18,14 @@ def handle_infohash(infohash):
     client_id = client.get_random_20_bytes()
     client.find_all_peers(infohash, client_id)
     # Put infohash-peer pairs into database with timestamp
+    # Do something else with data?
 
 
 def main():
     if len(sys.argv) > 1:
         node_count = int(sys.argv[1])
     else:
-        node_count = 5
+        node_count = NODE_COUNT
 
     #tshark_args = ['tshark', '-i', '1', '-f', f'udp port {DEFAULT_PORT}-{DEFAULT_PORT+node_count}', '-d', f'udp.port=={DEFAULT_PORT}-{DEFAULT_PORT+node_count},bt-dht', '-O', 'bt-dht']
     tshark_args = ['tshark', '-O', 'bt-dht']
