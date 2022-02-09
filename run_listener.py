@@ -38,8 +38,8 @@ def spawn_nodes_every(interval, start_port, count, start_time, runtime):
             os.mkdir(config_dir)
             #args = ['transmission-cli', '-g', config_dir, '-p', str(port), ARCHLINUX]
             # Once archlinux is downloaded once, each node should just announce itself to the DHT
-            args = ['deluged', '-c', config_dir, '-p', str(port)]
-            node = subprocess.Popen(args, )
+            args = ['deluged', '-d', '-c', config_dir, '-p', str(port)]
+            node = subprocess.Popen(args)
             nodes.append(node)
         start_port += count
         time.sleep(interval)
