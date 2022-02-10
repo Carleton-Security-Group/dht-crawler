@@ -15,7 +15,7 @@ RUNTIME = 60 * 60 * 24  # 24 hours
 
 RESTART_EVERY = 60 * 15 # 15 minutes
 
-PEER_SEARCH_DEPTH = 3
+PEER_SEARCH_DEPTH = 5   # At 5, get lots of too many open files errors, but otherwise don't find enough peers
 
 # Total ports to be used = NODE_COUNT * RUNTIME / RESTART_EVERY
 
