@@ -46,6 +46,7 @@ def spawn_nodes_every(interval, start_port, count, start_time, runtime):
         for port in range(start_port, start_port + count):
             #config_dir = f'/tmp/transmission_{port}'
             config_dir = f'/tmp/deluged_{port}'
+            os.system(f'rm -rf {config_dir}')
             os.mkdir(config_dir)
             #args = ['transmission-cli', '-g', config_dir, '-p', str(port), ARCHLINUX]
             args = ['deluged', '-d', '-c', config_dir, '-p', str(port)]
