@@ -73,7 +73,7 @@ def main():
     spawner.start()
 
     children = []
-    while time.time() < start_time + runtime:
+    while time.time() < start_time + RUNTIME:
         line = tshark.stdout.readline()
         line = line.decode("utf-8")
         line = line.strip()
