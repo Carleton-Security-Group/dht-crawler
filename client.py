@@ -239,7 +239,7 @@ def find_nodes_from_server(info_hash, server, port, client_id=ID, values=None, l
             return child_values
 
 
-def find_all_peers(info_hash, client_id=ID):
+def find_all_peers(info_hash, client_id=ID, depth=5):
     values = set()
     lock = threading.Lock()
     children = []
@@ -247,7 +247,7 @@ def find_all_peers(info_hash, client_id=ID):
         child = threading.Thread(
                 target=find_nodes_from_server,
                 args=(info_hash, server, port, client_id),
-                kwargs={'values': values, 'lock': lock, 'depth': 5},
+                kwargs={'values': values, 'lock': lock, 'depth': depth},
                 )
         children.append(child)
         child.start()

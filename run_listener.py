@@ -15,6 +15,8 @@ RUNTIME = 60 * 60 * 24  # 24 hours
 
 RESTART_EVERY = 60 * 15 # 15 minutes
 
+PEER_SEARCH_DEPTH = 3
+
 # Total ports to be used = NODE_COUNT * RUNTIME / RESTART_EVERY
 
 
@@ -22,7 +24,7 @@ def handle_infohash(infohash):
     # Type of infohash should be string (40-byte hex representation of 20-byte integer)
     # Put infohash into databse
     client_id = client.get_random_20_bytes()
-    peers = client.find_all_peers(infohash, client_id)
+    peers = client.find_all_peers(infohash, client_id, PEER_SEARCH_DEPTH)
     # Put infohash-peer pairs into database with timestamp
     # TODO
     # Do something else with data?
