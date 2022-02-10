@@ -85,3 +85,7 @@ def main():
             children.append(child)
     for child in children:
         child.kill()
+
+
+if __name__ == '__main__':
+    main()
