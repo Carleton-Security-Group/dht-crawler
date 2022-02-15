@@ -26,7 +26,7 @@ def handle_infohash(infohash):
     curl_args = ['curl', '-L', '--max-time', '10', '--output', f'{INFO_DIR}/{infohash}.torrent', f'http://itorrents.org/torrent/{infohash}.torrent']
     print(curl_args)
     subprocess.run(curl_args)
-    with open(f'{infohash}.info', 'w') as info_file:
+    with open(f'{INFO_DIR}/{infohash}.info', 'w') as info_file:
         subprocess.run(['transmission-show', f'{INFO_DIR}/{infohash}.torrent'], stdout=info_file)
 
 
