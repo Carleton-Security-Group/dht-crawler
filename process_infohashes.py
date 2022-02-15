@@ -30,7 +30,7 @@ def handle_infohash(infohash):
         subprocess.run(['transmission-show', f'{INFO_DIR}/{infohash}.torrent'], stdout=info_file)
 
 
-os.makedirs(INFO_DIR)
+os.makedirs(INFO_DIR, exist_ok=True)
 
 for infile in sys.argv[1:]:
     with open(infile) as hashfile:
