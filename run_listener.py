@@ -32,7 +32,7 @@ def handle_infohash(infohash):
     with open(f'{infohash}_{timestamp}.peers', 'w') as outfile:
         for ip, port in peers:
             outfile.write(f'{ip}:{port}\n')
-    curl_args = ['curl', '-L', '--output', f'{infohash}.torrent', f'http://itorrents.org/torrent/{infohash}.torrent']
+    curl_args = ['curl', '-L', '--max-time', '10', '--output', f'{infohash}.torrent', f'http://itorrents.org/torrent/{infohash}.torrent']
     print(curl_args)
     subprocess.run(curl_args)
     with open(f'{infohash}.info', 'w') as info_file:
