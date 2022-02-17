@@ -32,10 +32,11 @@ def handle_infohash(infohash):
 
 os.makedirs(INFO_DIR, exist_ok=True)
 
-for infile in sys.argv[1:]:
-    with open(infile) as hashfile:
-        for line in hashfile:
-            proc = multiprocessing.Process(target=handle_infohash, args=(line.strip(),))
-            proc.start()
-            proc.join()
-            proc.close()
+if __name__ == '__main__':    
+    for infile in sys.argv[1:]:
+        with open(infile) as hashfile:
+            for line in hashfile:
+                proc = multiprocessing.Process(target=handle_infohash, args=(line.strip(),))
+                proc.start()
+                proc.join()
+                proc.close()
